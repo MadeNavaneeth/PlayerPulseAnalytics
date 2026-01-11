@@ -124,7 +124,3 @@ PlayerPulseAnalytics/
 
 ## 🏷️ Tags
 `game-analytics` `machine-learning` `tableau-extension` `churn-prediction` `nodejs` `python` `real-time-dashboard`
-
----
-
-Built with ❤️ by [Navaneeth]
