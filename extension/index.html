@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayerPulse Analytics Extension</title>
+    <!-- Tableau Extensions API Library -->
+    <script src="https://cdn.jsdelivr.net/gh/tableau/extensions-api@master/lib/tableau.extensions.1.latest.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --accent-yellow: #FFD93D;
+            --accent-blue: #4D96FF;
+            --accent-purple: #E0C3FC;
+            --text-black: #000000;
+            --text-white: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-black);
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            /* Reduced from 60px */
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            /* Slightly bolder for smaller text */
+            font-size: 32px;
+            /* Smaller as requested */
+            margin: 0;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            color: #000;
+        }
+
+        h3 {
+            font-family: 'Anton', sans-serif;
+            font-size: 36px;
+            text-transform: uppercase;
+            font-style: italic;
+            margin: 0 0 20px 0;
+            /* More space below headers */
+            line-height: 0.9;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-weight: 700;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            /* Increased gap */
+        }
+
+        /* BENTO CARDS */
+        .card {
+            border-radius: 32px;
+            /* Rounder corners */
+            padding: 40px;
+            /* More breathing room */
+            position: relative;
+            overflow: visible;
+            border: 3px solid #000;
+            /* Thicker border */
+            box-shadow: 8px 8px 0px #000;
+            /* Deeper shadow */
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 12px 12px 0px #000;
+        }
+
+        /* Specific Card Colors */
+        /* Specific Card Colors - Updated for new order */
+        /* 
+           Card 1: Retention (Yellow) 
+           Card 2: Revenue (Blue) - SWAPPED
+           Card 3: Live Ops (Purple) - SWAPPED
+           Card 4: Growth (Grey)
+        */
+
+        .card:nth-of-type(1) {
+            background-color: var(--accent-yellow);
+        }
+
+        .card:nth-of-type(2) {
+            background-color: var(--accent-blue);
+        }
+
+        .card:nth-of-type(3) {
+            background-color: var(--accent-purple);
+        }
+
+        .card:nth-of-type(4) {
+            background-color: #f0f0f0;
+            border: 3px solid #000;
+        }
+
+        .col-span-2 {
+            grid-column: span 2;
+        }
+
+        .col-span-3 {
+            grid-column: span 3;
+        }
+
+        .big-number {
+            font-family: 'Anton', sans-serif;
+            font-size: 72px;
+            /* Bigger numbers */
+            font-style: italic;
+            margin: 15px 0;
+            color: #000 !important;
+            line-height: 1;
+        }
+
+        .btn {
+            background: #000;
+            color: #fff;
+            border: 3px solid #000;
+            /* Thicker border */
+            padding: 16px 36px;
+            border-radius: 100px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            /* Extra bold */
+            font-size: 15px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            background: #222;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #000;
+            border: 2px solid #000;
+        }
+
+        .btn-outline:hover {
+            background: #000;
+            color: #fff;
+        }
+
+        .list-item {
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+            color: #000;
+            font-weight: 600;
+            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tag {
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Overrides for Feed & Table */
+        #feed-list li {
+            color: #000 !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 600;
+        }
+
+        #feed-list span {
+            color: #000 !important;
+        }
+
+        table th {
+            color: #000;
+            border-bottom: 2px solid #000;
+            font-family: 'Anton', sans-serif;
+            font-size: 18px;
+            text-transform: uppercase;
+            font-style: italic;
+        }
+
+        table td {
+            color: #000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+        }
+
+        .btn-sm {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Loader */
+        .loader {
+            border: 4px solid #000;
+            border-top: 4px solid transparent;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tooltip Styling */
+        .info-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            font-style: normal;
+            cursor: help;
+            margin-left: 10px;
+            position: relative;
+            vertical-align: middle;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 135%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+            pointer-events: none;
+            box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+            text-transform: none;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #000 transparent transparent transparent;
+        }
+
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1 style="font-family: 'Inter', sans-serif;">PlayerPulse Analytics</h1>
+            </div>
+            <!-- Header Actions -->
+            <div style="display:flex; gap:15px;">
+                <button id="refresh-btn" class="btn btn-outline" style="min-width: 150px;">
+                    REFRESH DATA
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+
+            <!-- Churn Card (Yellow) -->
+            <div class="card">
+                <h3>PLAYER RETENTION <span class="info-icon">?<span class="tooltip-text">AI predicts which players are
+                            likely to stop playing (Churn) in the next 7 days.</span></span></h3>
+                <div id="churn-loading" class="loader" style="display:none;"></div>
+                <div id="churn-content">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 30px;">
+                        <div>
+                            <p class="big-number" id="at-risk-count" style="margin-top:0;">--</p>
+                            <p class="subtitle">High Risk Players</p>
+                        </div>
+                        <div style="width: 80px; height: 80px;">
+                            <canvas id="churnChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- New Table Area for Churn (Compact) -->
+                    <div style="border: 2px solid #000; border-radius: 12px; overflow: hidden; margin: 0 auto;">
+                        <div
+                            style="display:flex; justify-content:space-between; padding: 12px 15px; border-bottom: 2px solid #000; background: rgba(0,0,0,0.05);">
+                            <span class="subtitle" style="color:#000; margin:0; font-size:12px;">PLAYER ID</span>
+                            <span class="subtitle" style="color:#000; margin:0; font-size:12px;">RISK</span>
+                        </div>
+                        <ul id="churn-list" style="list-style:none; padding:0; margin:0;">
+                            <!-- List items -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monetization Card (Blue) -->
+            <div class="card">
+                <h3>REVENUE UPLIFT <span class="info-icon">?<span class="tooltip-text">Identifies active players with
+                            high spending potential who haven't purchased recently.</span></span></h3>
+                <div id="monetization-loading" class="loader" style="display:none;"></div>
+                <div id="monetization-content">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <p class="big-number" id="opportunity-count">--</p>
+                            <p class="subtitle">Opportunities</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <p class="subtitle">Potential</p>
+                            <p class="big-number" style="font-size:32px;" id="total-potential">--</p>
+                        </div>
+                    </div>
+                    <!-- Chart Area -->
+                    <div style="margin: 20px 0; height: 150px;">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <!-- Small list preview -->
+                    <ul id="monetization-list" style="list-style:none; padding:0;"></ul>
+                </div>
+            </div>
+
+            <!-- Live Operations Feed (Purple) -->
+            <div class="card">
+                <h3 style="margin-bottom: 0;">LIVE OPS <span class="info-icon">?<span class="tooltip-text">A real-time
+                            stream of significant player events (Levels, Purchases, Churn Alerts).</span></span></h3>
+                <p class="subtitle" style="margin-top: 0; margin-bottom: 10px; opacity: 0.5;">Global Feed</p>
+                <div id="live-feed"
+                    style="margin-top: 0; height: 500px; overflow-y: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end;">
+                    <div class="feed-overlay"
+                        style="position:absolute; top:0; left:0; width:100%; height:80px; background:linear-gradient(to bottom, var(--accent-purple), transparent); pointer-events:none; z-index: 10;">
+                    </div>
+                    <ul class="list-group" id="feed-list"
+                        style="font-family: 'Inter', sans-serif; font-size: 13px; list-style: none; padding: 0; margin: 0;">
+                        <!-- Items injected via JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Full Width Cohort/Actions (Grey) - SPAN 3 -->
+            <div class="card col-span-3">
+                <h3>GROWTH METRICS <span class="info-icon">?<span class="tooltip-text"
+                            style="width: 300px; margin-left: -150px;">
+                            <strong>Cohort Segments:</strong><br>
+                            🐋 <strong>Whales:</strong> High Spenders (>$100)<br>
+                            🐬 <strong>Dolphins:</strong> Medium Spenders ($10-$100)<br>
+                            🐟 <strong>Minnows:</strong> Low/Non-Spenders (<$10) </span></span></h3>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 40px;">
+                    <!-- Cohort Analysis -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
+                        <thead>
+                            <tr style="text-align: left;">
+                                <th style="padding: 10px;">Segment</th>
+                                <th style="padding: 10px;">Count</th>
+                                <th style="padding: 10px;">Avg. Spend</th>
+                                <th style="padding: 10px;">Retention</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-row">
+                                <td style="padding: 10px;">Whales</td>
+                                <td style="padding: 10px;">24</td>
+                                <td style="padding: 10px;">$450.00</td>
+                                <td style="padding: 10px;">98%</td>
+                            </tr>
+                            <tr class="table-row">
+                                <td style="padding: 10px;">Dolphins</td>
+                                <td style="padding: 10px;">145</td>
+                                <td style="padding: 10px;">$45.50</td>
+                                <td style="padding: 10px;">85%</td>
+                            </tr>
+                            <tr class="table-row">
+                                <td style="padding: 10px;">Minnows</td>
+                                <td style="padding: 10px;">3,402</td>
+                                <td style="padding: 10px;">$2.99</td>
+                                <td style="padding: 10px;">42%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <script src="script.js"></script>
+</body>
+
+</html>

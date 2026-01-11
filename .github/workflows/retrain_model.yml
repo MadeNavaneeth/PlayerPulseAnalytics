@@ -1,0 +1,48 @@
+name: Retrain ML Models
+
+on:
+  schedule:
+    # Run every Sunday at midnight
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  train-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r ml-engine/requirements.txt
+
+    - name: Run Data Processing
+      run: |
+        cd ml-engine
+        # In a real scenario, we'd pull from Firebase/Storage first
+        # python ingest_mock.py 
+        python process_data.py
+
+    - name: Retrain Churn Model
+      run: |
+        cd ml-engine
+        python train_model.py
+
+    - name: Retrain Monetization Model
+      run: |
+        cd ml-engine
+        python train_monetization_model.py
+
+    - name: Commit and Push Changes
+      # Commit the new models (pkl) and predictions (csv)
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: "Auto-retrained ML models and updated predictions"
+        file_pattern: "ml-engine/*.pkl ml-engine/*.csv"
